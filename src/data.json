@@ -1,0 +1,22 @@
+{
+    "units": "meters",
+    
+    "timeSteps": 365,
+    
+    "rowSpacing": 3.05, 
+    "vineyardColumnSize": 50,
+    "vineyardColumns": 20,
+
+    "sprayEffectivenessOnAdults": 60,
+    "sprayMaximumDose": 100,
+    "sprayPreHarvestInterval": 30,
+    
+    "SLFTransferRate": "???",
+    "SLFJumpRate" : "???",
+    "SLFSapFeeding": "???",
+    "grapeClusterAverage": 40,
+
+    "testInput" : 69,
+
+    "threadCount": 1
+}
