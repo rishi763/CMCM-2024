@@ -17,6 +17,10 @@ void State::initVineyard()
 }
 
 
+void State::timeStep(){
+
+}
+
 
 void State::simulate(){
     initVineyard();
@@ -26,11 +30,21 @@ void State::simulate(){
     // calculate plant health deterioration from sprays
 }
 
+string state::outputMatrix(){
+    
+}
+
+
+json State::serializeData(){
+    json j;
+
+    j["OutputTag1"] = 55; //Keep doing this basically.
+
+    return j;
+}
 
 void State::outputData(fs::path outputPath, int threadId){
-    json j;
-    // j["test1"] = foo;
-    // j["test2"] = parameterList["testInput"];
+    json j = serializeData();
     outputPath /= fs::path("simTrial" + std::to_string(threadId) + ".json");
     std::ofstream fout(outputPath);
     fout << j.dump();

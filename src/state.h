@@ -1,48 +1,42 @@
 #include "pch.h"
-// #ifndef state
-// #define state
 
 struct State
 {
-    enum SEX{
-        FEMALE,
-        MALE
-    };
+    static json parameterList;
 
-    struct slf{
-        bool isAdult;
-        SEX sex;
-        //Health attributes?
+    enum bugType {
+        femaleEgg,
+        femaleChild,
+        femaleAdult,
+        maleEgg,
+        maleChild,
+        maleAdult
     };
 
     struct plant
     {
-        vector<slf> bugList;
+        int weight = 1;
+        array<int, 6> bugCount{0};
         int vineHealth = 100; //0 to 100
+        int eggCount = 0;
         int grapeClusters = parameterList["grapeClusterAverage"];//on average a healthy grape vine  
     };
 
-
     vector<vector<plant>> vineyard;
-    static json parameterList;
-    // int foo = 0;
-    // void setFoo(int _foo){
-    //     foo = -1;
-    //     foo = _foo;
-    // }
-
     State(){}
-    // State(const json &_j)
-    // {
-    //     parameterList = _j;
-    // }
 
     void initVineyard();
     void simulate();
     void outputData(fs::path path, int threadId);
     void timeStep();
+    string outputMatrix();
 
+    json serializeData();
+
+    // Helper functions
+    static float rand0to1(){
+        return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    }
 };
 
 
-// #endif

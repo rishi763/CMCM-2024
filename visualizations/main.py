@@ -4,12 +4,16 @@ import requests
 def initData():
     pass
 
+filename = "output.json"
+
 # Entry Point
 if __name__ == "__main__":
-    dataFile = open("data.json")
+    dataFile = open(filename)
     jsonData = json.loads(dataFile.read())
-        
+    csv = jsonData["weightMap"]
+    x = jsonData["x"]
+    y = jsonData["y"]
 
-    for i in range(jsonData["timeSteps"]):
+    
 
 

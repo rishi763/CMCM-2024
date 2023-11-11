@@ -16,7 +16,8 @@
     "SLFSapFeeding": "???",
     "grapeClusterAverage": 40,
 
-    "testInput" : 69,
+    "timeStep": 1,
+    "runTime": 360,
 
     "threadCount": 1
 }

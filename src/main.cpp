@@ -6,6 +6,8 @@ const string jsonName = "data.json";
 fs::path outputPath = std::filesystem::current_path() /= fs::path("data") /= fs::path(runName);
 
 int main(){
+    
+    
     auto programStartTime = std::chrono::system_clock::now();
     std::ifstream f(jsonName);
     json parameterList = json::parse(f);
@@ -18,9 +20,7 @@ int main(){
     auto threadList = vector<thread>(parameterList["threadCount"]);
     auto threadFunction = [](State* s, int threadId){
         auto threadStartTime = std::chrono::system_clock::now();
-        // s->initVineyard();
         s->simulate();
-        // s->setFoo(threadId);
 
         auto threadEndTime = std::chrono::system_clock::now();
         std::cout << "Thread " << threadId << " finished computing in " << 
@@ -39,5 +39,4 @@ int main(){
     }
     auto programEndTime = std::chrono::system_clock::now();
     std::cout << "Simulation Finished in " << std::chrono::duration_cast<std::chrono::microseconds>(programEndTime - programStartTime).count()/1e6 << " seconds" << std::endl;
-    // std::cout << outputPath << "\n";
 }
