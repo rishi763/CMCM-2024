@@ -19,7 +19,7 @@ with open('simTrial0.json', 'r') as file:
     for row in range(1, nr + 1):
         for col in range(1, nc + 1):
             # Use the weight value as the color intensity
-            weight_value = weights_array[row - 1, col - 1]*1000
+            weight_value = weights_array[row - 1, col - 1]/10
             color = plt.cm.RdYlGn(weight_value)
             plt.plot(col, row, marker='s', markersize=4.5, color=color)
     

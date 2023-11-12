@@ -3,46 +3,64 @@
 struct State
 {
     json parameterList;
-    State(const json& _parameterList){
+    json outputJson;
+    State(const json &_parameterList)
+    {
         parameterList = _parameterList;
     }
-    
+
+    // Dont change order please
     enum bugType
     {
         femaleEgg,
-        femaleChild,
-        femaleAdult,
         maleEgg,
-        maleChild,
+        femaleNymph,
+        maleNymph,
+        femaleAdult,
         maleAdult
     };
 
-    struct plant
-    {
-        array<int, 6> bugCount{0};
-        int vineHealth = 100;                                     // 0 to 100
-        int grapeClusters = 40;
-        // parameterList["grapeClusterAverage"]; // on average a healthy grape vine
-    };
+    // struct plant
+    // {
+    //     array<int, 6> bugCount{0};
+    //     int vineHealth = 100;                                     // 0 to 100
+    //     int grapeClusters = 40;
+    //     // parameterList["grapeClusterAverage"]; // on average a healthy grape vine
+    // };
 
     int currentTime = 1;
     int currentMonth = 1;
+    int currentDay = 1;
+    int spraysLeft = parameterList["sprayMaximumDose"];
+    int totalGrapes = 0;
 
-    vector<vector<plant>> vineyard;
-    vector<vector<double>> eggDistribution; 
 
+    // Map represtation of our farm
+    vector<vector<array<int, 6>>> bugCount;
+    vector<vector<int>> vineHealth;
+    vector<vector<int>> lastSprayTime;
+    vector<vector<int>> grapeClusters;
+    vector<vector<int>> friendlyInsectPopulation;
+    vector<vector<double>> eggDistribution;
+
+    // Overarching functions
     void initVineyard();
     void simulate();
     void timeStep();
+    void applySprayStrategy(std::string strategy);
+
+    // Properties of bug simulation functions
     void updateEnvironment();
     // void searching();
     void exterminate();
     void updateBug();
+    void spawnInBugs(int amount, bugType type, bool bothSexes);
 
+    void migrateBugs();
+
+    // Data output Functions
+    void serializeData();
     void outputData(fs::path outputPath, int threadId);
-    json serializeData();
-    string outputMatrix();
-    // template<typenameT> void outputMatrix(json& j, int id, string matrixNameLabel);
 
     // Helper functions
     static double rand0to1()
@@ -50,17 +68,55 @@ struct State
         return static_cast<double>(rand()) / static_cast<double>(RAND_MAX);
     }
 
-    static std::pair<int, int> pickLocation(vector<vector<double>> distribution)
-    {
-        double randomNumber = rand0to1();
-        // for (size_t row = 0; row < distribution.size(); row++){
-        //     for(size_t col= 0; col <distribution[0].size();col++){
-        //         if(randomNumber<distribution[row][col]){
-        //             return {row, col};
-        //         }
-        //         randomNumber-=distribution[row][col];
-        //     }
-        // }
-        return {distribution.size()-1, distribution[0].size()-1};
-    }
+    static std::pair<int, int> pickLocation(vector<vector<double>> distribution);
+
+    std::map<string, std::function<void(int nymphThreshold, int adultThreshold, int harvestDeadline)>> strategies = {
+        {"flatThresholdStrategy", [&](int nymphThreshold, int adultThreshold, int harvestDeadline)
+         {
+            //  int nymphThreshold = 50;
+            //  int adultThreshold = 10;
+            //  int harvestDeadline = 270;
+
+             int sprayPreHarvestInterval = parameterList["sprayPreHarvestInterval"];
+
+             for (int x = 0; x < bugCount.size(); x++)
+             {
+                 for (int y = 0; y < bugCount[0].size(); y++)
+                 {
+                     if (spraysLeft <= 0)
+                     {
+                         return;
+                     }
+                     if ((currentTime % 360) <= harvestDeadline - sprayPreHarvestInterval)
+                     {
+                        return;
+                     }
+                     if ((bugCount[x][y][maleNymph] + bugCount[x][y][femaleNymph] >= nymphThreshold) || (bugCount[x][y][maleAdult]+bugCount[x][y][femaleAdult] >= adultThreshold))
+                     {
+                         bugCount[x][y][maleNymph] = 0;
+                         bugCount[x][y][femaleNymph] = 0;
+                         int deadMaleAdults = 0;
+                         int deadFemaleAdults = 0;
+                         for (int i = 0; i < bugCount[x][y][maleAdult]; i++)
+                         {
+                             if (rand0to1() < 0.6)
+                             {
+                                 deadMaleAdults++;
+                             }
+                         }
+                         for (int i = 0; i < bugCount[x][y][femaleAdult]; i++)
+                         {
+                             if (rand0to1() < 0.6)
+                             {
+                                 deadFemaleAdults++;
+                             }
+                         }
+                         bugCount[x][y][maleAdult] -= deadMaleAdults;
+                         bugCount[x][y][femaleAdult]-=deadFemaleAdults;
+
+                         lastSprayTime[x][y]=currentTime;
+                     }
+                 }
+             }
+         }}};
 };
