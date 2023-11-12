@@ -10,10 +10,12 @@
     "sprayEffectivenessOnAdults": 60,
     "sprayMaximumDose": 100,
     "sprayPreHarvestInterval": 30,
-    
+
+
     "SLFTransferRate": "???",
     "SLFJumpRate" : "???",
     "SLFSapFeeding": "???",
+    "initialSLFPopulation": 1000,
     "grapeClusterAverage": 40,
 
     "timeStep": 1,

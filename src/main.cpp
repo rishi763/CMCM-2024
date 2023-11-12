@@ -11,12 +11,13 @@ int main(){
     auto programStartTime = std::chrono::system_clock::now();
     std::ifstream f(jsonName);
     json parameterList = json::parse(f);
+
     std::cout << "Json Successfully read\n";
     
     fs::create_directory(fs::path("data")/=fs::path(runName));
     
-    State::parameterList = parameterList;
-    auto data = vector<State>(parameterList["threadCount"], State());
+    // State::parameterList = parameterList;
+    auto data = vector<State>(parameterList["threadCount"], State(parameterList));
     auto threadList = vector<thread>(parameterList["threadCount"]);
     auto threadFunction = [](State* s, int threadId){
         auto threadStartTime = std::chrono::system_clock::now();

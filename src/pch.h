@@ -8,6 +8,7 @@
 #include <chrono>
 #include <array>
 #include <cstdlib>
+#include <sstream>
 
 using json = nlohmann::json;
 using std::string;
