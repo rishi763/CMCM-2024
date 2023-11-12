@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdlib>
 #include <sstream>
+#include <ctime>
 
 using json = nlohmann::json;
 using std::string;

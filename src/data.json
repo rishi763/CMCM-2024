@@ -1,6 +1,6 @@
 {
     "units": "meters",
-    
+
     "timeSteps": 365,
     
     "rowSpacing": 3.05, 
@@ -11,10 +11,9 @@
     "sprayMaximumDose": 100,
     "sprayPreHarvestInterval": 30,
 
-
     "SLFAdultTransferRate": 0.1,
     "SLFFemaleEggLayRate": 0.9,
-    // "SLFFemaleEggDoubleLayRate": 0.4,
+    "SLFFemaleEggDoubleLayRate": 0.4,
     "SLFHorJmpRateRelToVertical" : 0.3,
     "SLFSapFeeding": "???",
     "initialSLFEggMasses": 1000,
@@ -22,11 +21,11 @@
     "SLFEggHatchRate": 0.45,
     "grapeClusterAverage": 40,
     "weather": [-6,-5,-1,5,10,16,18,17,13,1,-3],
-    
 
     "winterKillDay": 315,
     "hatchEggsDay":120,
-    "layEggsDay":150 ,
+    "turnToAdultDay":150,
+    "layEggsDay":275,
 
     "timeStep": 1,
     "runTime": 360,

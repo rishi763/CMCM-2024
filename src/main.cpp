@@ -5,10 +5,10 @@ const string runName = "testing";
 const string jsonName = "data.json";
 fs::path outputPath = std::filesystem::current_path() /= fs::path("data") /= fs::path(runName);
 
-int main(){
-    
-    
+int main(){ 
     auto programStartTime = std::chrono::system_clock::now();
+    srand(std::time(0));
+    
     std::ifstream f(jsonName);
     json parameterList = json::parse(f);
 
@@ -18,6 +18,7 @@ int main(){
     
     // State::parameterList = parameterList;
     auto data = vector<State>(parameterList["threadCount"], State(parameterList));
+
     auto threadList = vector<thread>(parameterList["threadCount"]);
     auto threadFunction = [](State* s, int threadId){
         auto threadStartTime = std::chrono::system_clock::now();
