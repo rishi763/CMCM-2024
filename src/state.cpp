@@ -3,12 +3,12 @@
 // \frac{e^{2.2\max\left(\left|\frac{x}{50}\right|,\left|\frac{y}{20}\right|\right)}}{2149.44}
 // ^I'm cumming
 
-void State::spawnInBugs(int amount, bugType type, bool bothSexes)
+void State::spawnInBugs(int numberOfEggMasses, int eggMasses, bugType type, bool bothSexes)
 {
-    for (int i = 0; i < amount; i++)
+    for (int i = 0; i < numberOfEggMasses; i++)
     {
         std::pair<int, int> location = pickLocation(eggDistribution);
-        for (int j = 0; j < amount; j++)
+        for (int j = 0; j < eggMasses; j++)
         {
             if (bothSexes)
                 bugCount[location.first][location.second][((int)type / 2) + (rand0to1() > 0.5)]++;
@@ -45,7 +45,7 @@ void State::initVineyard()
     }
 
     // Initalize egg count, preprotional to eggDistribtion weights
-    spawnInBugs(SLFEggMassSize, femaleEgg, true);
+    spawnInBugs(initialSLFEggMasses, SLFEggMassSize, femaleEgg, true);
 }
 
 void State::simulate()
@@ -81,10 +81,12 @@ void State::migrateASpecies(bugType type, function<int(int)> weatherFunc)
     int vineyardColumns = parameterList["vineyardColumns"];
     int vineyardColumnSize = parameterList["vineyardColumnSize"];
 
+    int checkSum = 0;
+
     // Migrate nymphs
     // up, down, left, right
     auto updateDist = vector<vector<array<int, 4>>>(vineyardColumns, vector<array<int, 4>>(vineyardColumnSize, array<int, 4>{0}));
-    // Store in each nymph
+    // Store in each nymph    
     for (int x = 0; x < updateDist.size(); x++)
     {
         for (int y = 0; y < updateDist[0].size(); y++)
@@ -92,15 +94,19 @@ void State::migrateASpecies(bugType type, function<int(int)> weatherFunc)
             // Put into each area, also where jumping has different probabilties and
             // the part about last 3 weeks little ones wont come comes from.
             int total = weatherFunc(bugCount[x][y][type]);
+            checkSum += bugCount[x][y][type];
             bugCount[x][y][type] -= total;
             // Distribuite to each updaate dist but with the right probabilties
-            int totalHor = total * (int)parameterList["SLFHorJmpRateRelToVertical"];
+            int totalHor = total * (double)parameterList["SLFHorJmpRateRelToVertical"];
             int totalVert = total - totalHor;
             // TODO Graviate: change random integer dist as tiem goes on and fav trees
             updateDist[x][y][0] = totalVert * rand0to1();
-            updateDist[x][y][1] = 1 - updateDist[x][y][0];
-            updateDist[x][y][2] = totalVert * rand0to1();
-            updateDist[x][y][3] = 1 - updateDist[x][y][0];
+            updateDist[x][y][1] = totalVert - updateDist[x][y][0];
+            updateDist[x][y][2] = totalHor * rand0to1();
+            updateDist[x][y][3] = totalHor - updateDist[x][y][2];
+        
+
+
             // Check for edge case at border, if so copy the value to the other side (always one vertical / 1 horiztonal wille exist)
             if (y == 0)
             {
@@ -124,6 +130,27 @@ void State::migrateASpecies(bugType type, function<int(int)> weatherFunc)
             }
         }
     }
+
+    int checkSum0 = 0;
+    int checkSum1 = 0;
+    int checkSum2 = 0;
+    int checkSum3 = 0;
+    int checkSum4 = 0;
+    for (int x = 0; x < updateDist.size(); x++)
+    {
+        for (int y = 0; y < updateDist[0].size(); y++)
+        {
+            checkSum0 += updateDist[x][y][0];
+            checkSum1 += updateDist[x][y][1];
+            checkSum2 += updateDist[x][y][2];
+            checkSum3 += updateDist[x][y][3];
+            checkSum4 += bugCount[x][y][type];
+        }
+
+    }
+    int checkSum5 = checkSum0 + checkSum1 + checkSum2 + checkSum3 + checkSum4;
+    std::cout << "CheckSum: " << checkSum0 << " " << checkSum1 << " " << checkSum2 <<
+     " " << checkSum3 << " " << checkSum4 << " " << checkSum5 << " " << checkSum << "\n";
 
     for (int x = 0; x < updateDist.size(); x++)
     {
@@ -264,7 +291,7 @@ void State::updateBug()
     }
 
     // Migrate
-    // migrateBugs();
+    migrateBugs();
 
     // Update Grape/Vine properties
     // TODO: Fungus
@@ -360,3 +387,4 @@ std::pair<int, int> State::pickLocation(vector<vector<double>> distribution)
     }
     return {distribution.size() - 1, distribution[0].size() - 1};
 }
+

@@ -55,7 +55,7 @@ struct State
     // void searching();
     void exterminate();
     void updateBug();
-    void spawnInBugs(int amount, bugType type, bool bothSexes);
+    void spawnInBugs(int numberOfEggMasses, int eggMasses, bugType type, bool bothSexes);
     void migrateASpecies(bugType type, function<int(int)> weatherFunc);
 
     void migrateBugs();

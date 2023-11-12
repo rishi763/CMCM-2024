@@ -16,7 +16,7 @@
     "SLFFemaleEggDoubleLayRate": 0.4,
     "SLFHorJmpRateRelToVertical" : 0.3,
     "SLFSapFeeding": "???",
-    "initialSLFEggMasses": 1000,
+    "initialSLFEggMasses": 500,
     "SLFEggMassSize": 40,
     "SLFEggHatchRate": 0.45,
     "grapeClusterAverage": 40,
