@@ -10,6 +10,10 @@
 #include <cstdlib>
 #include <sstream>
 #include <ctime>
+#include <string>
+#include <functional>
+#include "gnuplot.h"
+#include <queue>
 
 using json = nlohmann::json;
 using std::string;

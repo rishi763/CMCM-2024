@@ -6,9 +6,13 @@ struct State
     json outputJson;
     vector<vector<vector<int>>> outputVec;
 
-    State(const json &_parameterList)
+    int chosenPesticide = 0;
+    int harvestDay = 270;
+    bool errorMessages = false;
+    State(const json &_parameterList, int _chosenPesticide)
     {
         parameterList = _parameterList;
+        // chosenPesticide = _chosenPesticide;
     }
 
     // Dont change order please
@@ -22,6 +26,7 @@ struct State
         maleAdult
     };
 
+
     // struct plant
     // {
     //     array<int, 6> bugCount{0};
@@ -33,16 +38,21 @@ struct State
     int currentTime = 1;
     int currentMonth = 1;
     int currentDay = 1;
-    int spraysLeft = 100; // parameterList["sprayMaximumDose"];
     int totalGrapes = 0;
 
     // Map represtation of our farm
     vector<vector<array<int, 6>>> bugCount;
-    vector<vector<int>> vineHealth;
+    vector<vector<float>> vineHealth;
+    vector<vector<float>> fungus;
+    vector<vector<int>> spraysLeft;
     vector<vector<int>> lastSprayTime;
-    vector<vector<int>> grapeClusters;
     vector<vector<int>> friendlyInsectPopulation;
     vector<vector<double>> eggDistribution;
+    vector<array<int, 7>> sumBugs;
+    vector<int> grapeClusters;
+    vector<float> grapeMoney;
+    vector<float> sprayMoney;
+    vector<float> pnl;
 
     // Overarching functions
     void initVineyard();
@@ -58,7 +68,16 @@ struct State
     void spawnInBugs(int numberOfEggMasses, int eggMasses, bugType type, bool bothSexes);
     void migrateASpecies(bugType type, function<int(int)> weatherFunc);
 
+
+    void spawnInUpdate();
+    void eggsToNymph();
+    void nymphToAdult();
     void migrateBugs();
+    void winterKillDay();
+    void grapeVineUpdate();
+    void fungusPlantHealthUpdate();
+    void layEggsDay();
+
 
     // Data output Functions
     void serializeData();
@@ -72,43 +91,48 @@ struct State
 
     static std::pair<int, int> pickLocation(vector<vector<double>> distribution);
 
-    std::map<string, std::function<void(int nymphThreshold, int adultThreshold, int harvestDeadline)>> strategies = {
-    {"flatThresholdStrategy", [&](int nymphThreshold, int adultThreshold, int harvestDeadline)
-    {
+    void flatThresholdStrategy(int nymphThreshold, int adultThreshold, int harvestDeadline){
         //  int nymphThreshold = 50;
         //  int adultThreshold = 10;
         //  int harvestDeadline = 270;
+        int chosenPesticide=0;
 
-        int sprayPreHarvestInterval = parameterList["sprayPreHarvestInterval"];
 
+
+        double adultEfficacy = (double) parameterList["pesticide"][chosenPesticide]["SLFEfficacy"];
+
+        int sprayPreHarvestInterval = (int) parameterList["sprayPreHarvestInterval"];
         for (int x = 0; x < bugCount.size(); x++)
         {
             for (int y = 0; y < bugCount[0].size(); y++)
             {
-                if (spraysLeft <= 0)
+                if (spraysLeft[x][y] <= 0)
                 {
                     return;
                 }
-                if ((currentTime % 360) <= harvestDeadline - sprayPreHarvestInterval)
+                
+                if (currentDay >= harvestDeadline - sprayPreHarvestInterval)
                 {
                     return;
                 }
                 if ((bugCount[x][y][maleNymph] + bugCount[x][y][femaleNymph] >= nymphThreshold) || (bugCount[x][y][maleAdult] + bugCount[x][y][femaleAdult] >= adultThreshold))
                 {
+                    std::cout<<"Spray used"<<std::endl;
+                    spraysLeft[x][y]--;
                     bugCount[x][y][maleNymph] = 0;
                     bugCount[x][y][femaleNymph] = 0;
                     int deadMaleAdults = 0;
                     int deadFemaleAdults = 0;
                     for (int i = 0; i < bugCount[x][y][maleAdult]; i++)
                     {
-                    if (rand0to1() < 0.6)
+                    if (rand0to1() < adultEfficacy)
                     {
                         deadMaleAdults++;
                     }
                     }
                     for (int i = 0; i < bugCount[x][y][femaleAdult]; i++)
                     {
-                    if (rand0to1() < 0.6)
+                    if (rand0to1() < adultEfficacy)
                     {
                         deadFemaleAdults++;
                     }
@@ -120,5 +144,5 @@ struct State
                 }
             }
         }
-    }}};
+    };
 };

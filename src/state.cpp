@@ -26,12 +26,18 @@ void State::initVineyard()
     int SLFEggMassSize = parameterList["SLFEggMassSize"];
 
     bugCount = vector<vector<array<int, 6>>>(vineyardColumns, vector<array<int, 6>>(vineyardColumnSize, array<int, 6>{0}));
-    vineHealth = vector<vector<int>>(vineyardColumns, vector<int>(vineyardColumnSize, 100));
-    grapeClusters = vector<vector<int>>(vineyardColumns, vector<int>(vineyardColumnSize, 0));
-    lastSprayTime = vector<vector<int>>(vineyardColumns, vector<int>(vineyardColumnSize, -1));
+    vineHealth = vector<vector<float>>(vineyardColumns, vector<float>(vineyardColumnSize, 100));
+    fungus = vector<vector<float>>(vineyardColumns, vector<float>(vineyardColumnSize, 0));
+    lastSprayTime = vector<vector<int>>(vineyardColumns, vector<int>(vineyardColumnSize, -1000));
     friendlyInsectPopulation = vector<vector<int>>(vineyardColumns, vector<int>(vineyardColumnSize, 0));
     eggDistribution = vector<vector<double>>(vineyardColumns, vector<double>(vineyardColumnSize, 0.0));
-
+    sumBugs = vector<array<int, 7>>();
+    grapeClusters = vector<int>();
+    grapeMoney = vector<float>();
+    sprayMoney = vector<float>();
+    pnl = vector<float>();
+    int maximumSprayDose = (int) parameterList["pesticide"][chosenPesticide]["maximumSprayDose"];
+    spraysLeft = vector<vector<int>>(vineyardColumns, vector<int>(vineyardColumnSize, maximumSprayDose));
     // Initalize egg distribtion
     for (int row = 0; row < eggDistribution.size(); row++)
     {
@@ -68,6 +74,8 @@ void State::timeStep()
 {
     updateEnvironment();
     updateBug();
+    flatThresholdStrategy(50, 10, 270);
+    printData();
 }
 
 void State::updateEnvironment()
@@ -76,132 +84,231 @@ void State::updateEnvironment()
     currentDay = currentTime % 360;
 }
 
-void State::migrateASpecies(bugType type, function<int(int)> weatherFunc)
+void State::updateBug()
 {
-    int vineyardColumns = parameterList["vineyardColumns"];
-    int vineyardColumnSize = parameterList["vineyardColumnSize"];
+    // Spawn in Function
+    // int amountToSpawn = 10; //TODO: SEASON DEPENDENT
+    // spawnInBugs(amountToSpawn, femaleAdult, true);
+    spawnInUpdate();
 
-    int checkSum = 0;
+    // Renormalize population
+    eggsToNymph();
 
-    // Migrate nymphs
-    // up, down, left, right
-    auto updateDist = vector<vector<array<int, 4>>>(vineyardColumns, vector<array<int, 4>>(vineyardColumnSize, array<int, 4>{0}));
-    // Store in each nymph    
-    for (int x = 0; x < updateDist.size(); x++)
-    {
-        for (int y = 0; y < updateDist[0].size(); y++)
-        {
-            // Put into each area, also where jumping has different probabilties and
-            // the part about last 3 weeks little ones wont come comes from.
-            int total = weatherFunc(bugCount[x][y][type]);
-            checkSum += bugCount[x][y][type];
-            bugCount[x][y][type] -= total;
-            // Distribuite to each updaate dist but with the right probabilties
-            int totalHor = total * (double)parameterList["SLFHorJmpRateRelToVertical"];
-            int totalVert = total - totalHor;
-            // TODO Graviate: change random integer dist as tiem goes on and fav trees
-            updateDist[x][y][0] = totalVert * rand0to1();
-            updateDist[x][y][1] = totalVert - updateDist[x][y][0];
-            updateDist[x][y][2] = totalHor * rand0to1();
-            updateDist[x][y][3] = totalHor - updateDist[x][y][2];
-        
+    nymphToAdult();
 
+    // enviromntal Factors
+    winterKillDay();
 
-            // Check for edge case at border, if so copy the value to the other side (always one vertical / 1 horiztonal wille exist)
-            if (y == 0)
-            {
-                updateDist[x][y][0] += updateDist[x][y][1];
-                updateDist[x][y][1] = 0;
-            }
-            if (y == updateDist[0].size() - 1)
-            {
-                updateDist[x][y][1] += updateDist[x][y][0];
-                updateDist[x][y][0] = 0;
-            }
-            if (x == 0)
-            {
-                updateDist[x][y][3] += updateDist[x][y][2];
-                updateDist[x][y][2] = 0;
-            }
-            if (x == updateDist.size() - 1)
-            {
-                updateDist[x][y][2] += updateDist[x][y][3];
-                updateDist[x][y][3] = 0;
-            }
-        }
-    }
+    // Migrate
+    migrateBugs();
 
-    int checkSum0 = 0;
-    int checkSum1 = 0;
-    int checkSum2 = 0;
-    int checkSum3 = 0;
-    int checkSum4 = 0;
-    for (int x = 0; x < updateDist.size(); x++)
-    {
-        for (int y = 0; y < updateDist[0].size(); y++)
-        {
-            checkSum0 += updateDist[x][y][0];
-            checkSum1 += updateDist[x][y][1];
-            checkSum2 += updateDist[x][y][2];
-            checkSum3 += updateDist[x][y][3];
-            checkSum4 += bugCount[x][y][type];
-        }
+    grapeVineUpdate();
 
-    }
-    int checkSum5 = checkSum0 + checkSum1 + checkSum2 + checkSum3 + checkSum4;
-    std::cout << "CheckSum: " << checkSum0 << " " << checkSum1 << " " << checkSum2 <<
-     " " << checkSum3 << " " << checkSum4 << " " << checkSum5 << " " << checkSum << "\n";
+    fungusPlantHealthUpdate();
 
-    for (int x = 0; x < updateDist.size(); x++)
-    {
-        for (int y = 0; y < updateDist[0].size(); y++)
-        {
-            if (y != 0)
-                bugCount[x][y - 1][type] += updateDist[x][y][0];
-            if (y != updateDist[0].size() - 1)
-                bugCount[x][y + 1][type] += updateDist[x][y][1];
-            if (x != 0)
-                bugCount[x - 1][y][type] += updateDist[x][y][2];
-            if (x != updateDist.size() - 1)
-                bugCount[x + 1][y][type] += updateDist[x][y][3];
-        }
-    }
+    layEggsDay();
+}
+
+void State::spawnInUpdate()
+{
+    
 }
 
 // This is a heavy ocmputation loop. We should prolly update at some point if we can
 void State::migrateBugs()
 {
 
-    function<int(int)> a = [&](int size)
-    { return size; };
-    function<int(int)> b = [&](int size)
-    { return size * (int)(parameterList["SLFAdultTransferRate"]); };
-    // TEMP
-    migrateASpecies(femaleEgg, a);
-    migrateASpecies(maleEgg, a);
+    int vineyardColumns = (int)parameterList["vineyardColumns"];
+    int vineyardColumnSize = (int)parameterList["vineyardColumnSize"];
 
-    migrateASpecies(femaleNymph, a);
-    migrateASpecies(maleNymph, a);
-    // TODO: create the probability fucntion
-    migrateASpecies(femaleAdult, b);
-    migrateASpecies(maleAdult, b);
+    double adultLongevity = (double) parameterList["adultLongevity"];
+    double nymphLongevity = (double) parameterList["nymphLongevity"];
+
+    int nymphSprayThreshold = (int) parameterList["bugReturnAfterSpray"];
+    double adultJump = (double)(parameterList["SLFAdultTransferRate"]);
+
+
+    double vertJump = (double)parameterList["SLFHorJmpRateRelToVertical"];
+    double horJump = 1.0 - vertJump;
+
+    auto newBugCount = vector<vector<array<int, 6>>>(vineyardColumns, vector<array<int, 6>>(vineyardColumnSize, array<int, 6>{0}));
+
+    for (int x = 0; x < bugCount.size(); x++)
+    {
+        for (int y = 0; y < bugCount[0].size(); y++)
+        {
+            newBugCount[x][y][femaleEgg] = bugCount[x][y][femaleEgg];
+            newBugCount[x][y][maleEgg] = bugCount[x][y][maleEgg];
+
+            for (int i = 0; i < bugCount[x][y][femaleNymph]; i++)
+            {
+
+                double vertRandom = rand0to1();
+                double horRandom = rand0to1();
+
+                double up = (x != vineyardColumns - 1 && currentTime - lastSprayTime[x + 1][y] > nymphLongevity) ? vertJump * vertRandom : 0.0;
+                double right = (y != vineyardColumnSize - 1 && currentTime - lastSprayTime[x][y + 1] > nymphLongevity) ? horJump * horRandom : 0.0;
+                double down = (x != 0 && currentTime - lastSprayTime[x - 1][y] > nymphLongevity) ? vertJump * (1 - vertRandom) : 0.0;
+                double left = (y != 0 && currentTime - lastSprayTime[x][y - 1] > nymphLongevity) ? horJump * (1 - horRandom) : 0.0;
+
+                if (up + down + left + right == 0.0)
+                {
+                    newBugCount[x][y][femaleNymph] = 0;
+                    continue;
+                }
+
+                double randomDirection = rand0to1() * (up + down + right + left);
+
+                if (randomDirection < up)
+                {
+                    newBugCount[x + 1][y][femaleNymph]++;
+                    continue;
+                }
+
+                randomDirection -= up;
+                if (randomDirection < right)
+                {
+                    newBugCount[x][y + 1][femaleNymph]++;
+                    continue;
+                }
+                randomDirection -= right;
+                if (randomDirection < down)
+                {
+                    newBugCount[x - 1][y][femaleNymph]++;
+                    continue;
+                }
+
+                newBugCount[x][y - 1][femaleNymph]++;
+            }
+
+            for (int i = 0; i < bugCount[x][y][maleNymph]; i++)
+            {
+
+                double vertRandom = rand0to1();
+                double horRandom = rand0to1();
+
+                double up = (x != vineyardColumns - 1 && currentTime - lastSprayTime[x + 1][y] > nymphLongevity) ? vertJump * vertRandom : 0.0;
+                double right = (y != vineyardColumnSize - 1 && currentTime - lastSprayTime[x][y + 1] > nymphLongevity) ? horJump * horRandom : 0.0;
+                double down = (x != 0 && currentTime - lastSprayTime[x - 1][y] > nymphLongevity) ? vertJump * (1 - vertRandom) : 0.0;
+                double left = (y != 0 && currentTime - lastSprayTime[x][y - 1] > nymphLongevity) ? horJump * (1 - horRandom) : 0.0;
+
+                if (up + down + left + right == 0.0)
+                {
+                    newBugCount[x][y][maleNymph] = 0;
+                    continue;
+                }
+
+                double randomDirection = rand0to1() * (up + down + right + left);
+
+                if (randomDirection < up)
+                {
+                    newBugCount[x + 1][y][maleNymph]++;
+                    continue;
+                }
+                randomDirection -= up;
+                if (randomDirection < right)
+                {
+                    newBugCount[x][y + 1][maleNymph]++;
+                    continue;
+                }
+                randomDirection -= right;
+                if (randomDirection < down)
+                {
+                    newBugCount[x - 1][y][maleNymph]++;
+                    continue;
+                }
+                newBugCount[x][y - 1][maleNymph]++;
+            }
+
+            for (int i = 0; i < bugCount[x][y][femaleAdult]; i++)
+            {
+
+                double vertRandom = rand0to1();
+                double horRandom = rand0to1();
+
+                double up = (x != vineyardColumns - 1 && currentTime - lastSprayTime[x + 1][y] > adultLongevity) ? adultJump * vertJump * vertRandom : 0.0;
+                double right = (y != vineyardColumnSize - 1 && currentTime - lastSprayTime[x][y + 1] > adultLongevity)? adultJump * horJump * horRandom : 0.0;
+                double down = (x != 0 && currentTime - lastSprayTime[x - 1][y] > adultLongevity) ? adultJump * vertJump * (1 - vertRandom) : 0.0;
+                double left = (y != 0 && currentTime - lastSprayTime[x][y - 1] > adultLongevity) ? adultJump * horJump * (1 - horRandom) : 0.0;
+
+                double randomDirection = rand0to1() * (up + down + right + left);
+
+                if (randomDirection < up)
+                {
+                    newBugCount[x + 1][y][femaleAdult]++;
+                    continue;
+                }
+                randomDirection -= up;
+                if (randomDirection < right)
+                {
+                    newBugCount[x][y + 1][femaleAdult]++;
+                    continue;
+                }
+                randomDirection -= right;
+                if (randomDirection < down)
+                {
+                    newBugCount[x - 1][y][femaleAdult]++;
+                    continue;
+                }
+                randomDirection -= down;
+                if (randomDirection < left)
+                {
+                    newBugCount[x][y - 1][femaleAdult]++;
+                    continue;
+                }
+                newBugCount[x][y][femaleAdult]++;
+            }
+
+            for (int i = 0; i < bugCount[x][y][maleAdult]; i++)
+            {
+
+                double vertRandom = rand0to1();
+                double horRandom = rand0to1();
+
+                double up = (x != vineyardColumns - 1 && currentTime - lastSprayTime[x + 1][y] > adultLongevity) ? adultJump * vertJump * vertRandom : 0.0;
+                double right = (y != vineyardColumnSize - 1 && currentTime - lastSprayTime[x][y + 1] > adultLongevity) ? adultJump * horJump * horRandom : 0.0;
+                double down = (x != 0 && currentTime - lastSprayTime[x - 1][y] > adultLongevity) ? adultJump * vertJump * (1 - vertRandom) : 0.0;
+                double left = (y != 0 && currentTime - lastSprayTime[x][y - 1] > adultLongevity) ? adultJump * horJump * (1 - horRandom) : 0.0;
+
+                double randomDirection = rand0to1() * (up + down + right + left);
+
+                if (randomDirection < up)
+                {
+                    newBugCount[x + 1][y][maleAdult]++;
+                    continue;
+                }
+                randomDirection -= up;
+                if (randomDirection < right)
+                {
+                    newBugCount[x][y + 1][maleAdult]++;
+                    continue;
+                }
+                randomDirection -= right;
+                if (randomDirection < down)
+                {
+                    newBugCount[x - 1][y][maleAdult]++;
+                    continue;
+                }
+                randomDirection -= down;
+                if (randomDirection < left)
+                {
+                    newBugCount[x][y - 1][maleAdult]++;
+                    continue;
+                }
+                newBugCount[x][y][maleAdult]++;
+            }
+        }
+    }
+    bugCount = newBugCount;
 }
 
-void State::updateBug()
+void State::eggsToNymph()
 {
-    // Spawn in Function
-    // int amountToSpawn = 10; //TODO: SEASON DEPENDENT
-    // spawnInBugs(amountToSpawn, femaleAdult, true);
-
-    // Renormalize population
-
-    // TODO:Graudal Death
-
     // Eggs->Nymph
     int hatchEggsDay = (int)parameterList["hatchEggsDay"];
     if (hatchEggsDay <= currentDay && currentDay <= hatchEggsDay + 30)
     {
-        double probability = 0.0398942280401 * exp(-0.5 * (pow((currentTime - hatchEggsDay - 15) / 5.0, 2)));
+        double probability = 0.0398942280401 * exp(-0.5 * (pow((currentDay - (hatchEggsDay + 15)) / 5.0, 2.0))); // 40% survive
         for (auto &x : bugCount)
         {
             for (auto &y : x)
@@ -227,6 +334,7 @@ void State::updateBug()
 
                 y[1] -= newMaleNymph;
                 y[3] += newMaleNymph;
+
                 if (currentDay == hatchEggsDay + 30)
                 {
                     y[0] = 0;
@@ -235,12 +343,15 @@ void State::updateBug()
             }
         }
     }
+}
 
+void State::nymphToAdult()
+{
     // Nymph->Adult
     int turnToAdultDay = (int)parameterList["turnToAdultDay"];
     if (turnToAdultDay <= currentDay && currentDay <= turnToAdultDay + 60)
     {
-        double probability = 0.0398942280401 * exp(-0.5 * (pow((currentTime - hatchEggsDay - 30) / 10.0, 2)));
+        double probability = 0.0889641285295 * exp(-0.5 * (pow((currentDay - turnToAdultDay - 30) / 10.0, 2))); // 90% survive
         for (auto &x : bugCount)
         {
             for (auto &y : x)
@@ -274,40 +385,98 @@ void State::updateBug()
             }
         }
     }
+}
 
-    // Kill by enviromnttal factors
-    if (currentTime == (int)parameterList["winterKillDay"])
+void State::winterKillDay()
+{
+    if (currentDay == (int)parameterList["winterKillDay"])
     {
-        for (auto &x : bugCount)
+        for (int x = 0; x < bugCount.size(); x++)
         {
-            for (auto &y : x)
+            for (int y = 0; y < bugCount[0].size(); y++)
             {
                 for (int i = 2; i < 6; i++)
                 {
-                    y[i] = 0;
+                    bugCount[x][y][i] = 0;
+                }
+                // Reset Sprays
+                lastSprayTime[x][y] = -1000;
+            }
+        }
+        // Update spray values because no more bugs exist
+        int sprayMaximumDose = parameterList["pesticide"][chosenPesticide]["maximumSprayDose"];
+        int costPerSpray = parameterList["pesticide"][chosenPesticide]["costPerSpray"];
+        int usedSprays=0;
+        for(auto &row : spraysLeft){
+            for(auto& entry: row){
+                usedSprays+= sprayMaximumDose-entry;
+            }
+        }
+        float sprayCost = usedSprays * costPerSpray;
+        sprayMoney.push_back(sprayCost);
+        pnl.push_back(grapeMoney.back() - sprayCost);
+    }
+}
+
+void State::grapeVineUpdate()
+{
+    if (currentDay == harvestDay)
+    {
+        int grapesMade = 0;
+        float fungusThreshold = parameterList["fungusThreshold"];
+        int grapeClusterAverage = parameterList["grapeClusterAverage"];
+        int redZone = parameterList["redZone"];
+        int PLI = parameterList["pesticide"][chosenPesticide]["PHI"];
+
+        for (int x = 0; x < bugCount.size(); x++)
+        {
+            for (int y = 0; y < bugCount[0].size(); y++)
+            {
+                if (!(fungus[x][y] >= fungusThreshold && vineHealth[x][y] <= redZone && true /*TODO: days from PLI is soliod*/))
+                {
+                    grapesMade += grapeClusterAverage;
                 }
             }
         }
+        int grapesMoneyMade = grapesMade * (int)parameterList["grapesToDollars"];
+        grapeMoney.push_back(grapesMoneyMade);
     }
+}
 
-    // Migrate
-    migrateBugs();
+void State::fungusPlantHealthUpdate()
+{
+    float fungusThreshold = parameterList["fungusThreshold"];
+    int grapeClusterAverage = parameterList["grapeClusterAverage"];
+    int fungusYIntercept = parameterList["fungusYIntercept"];
+    float fungusSlope = parameterList["fungusSlope"];
+    int plantHealthThreshold = parameterList["plantHealthThreshold"];
+    float plantHealthSlope = parameterList["plantHealthSlope"];
 
-    // Update Grape/Vine properties
-    // TODO: Fungus
+    for (int x = 0; x < bugCount.size(); x++)
+    {
+        for (int y = 0; y < bugCount[0].size(); y++)
+        {
+            // Inc dec fungus depending on how many bugs are there
+            int bugCnt = 0;
+            for (int i = 2; i < 6; i++)
+            {
+                bugCnt += bugCount[x][y][i];
+            }
+            fungus[x][y] = std::max(0.0f, fungus[x][y] + fungusSlope * (bugCnt - fungusYIntercept));
 
-    // Harvest (if it is time of year)
-    // if(currentTime == harvestDay){
-    //     for(auto& i : grapeClusters){
-    //         for(auto &j : i){
-    //             totalGrapes += j;
-    //             j = 0;
-    //         }
-    //     }
-    // }
+            // Decrease plant health if more than 70 bugs
+            if (bugCnt >= plantHealthThreshold)
+            {
+                vineHealth[x][y] = std::max(0.0f, vineHealth[x][y] - (plantHealthSlope * (bugCnt - plantHealthThreshold)));
+            }
+        }
+    }
+}
 
+void State::layEggsDay()
+{
     // Lay eggs
-    if (currentTime == (int)parameterList["layEggsDay"])
+    if (currentDay == (int)parameterList["layEggsDay"])
     {
         for (auto &x : bugCount)
         {
@@ -318,7 +487,6 @@ void State::updateBug()
             }
         }
     }
-    printData();
 }
 
 void State::printData()
@@ -337,6 +505,12 @@ void State::printData()
             V[i][j] = bugCount[i][j][maleNymph] + bugCount[i][j][femaleNymph];
         }
     }
+    array<int, 7> eggSum;
+    for (int i = 0; i < 6; i++)
+        eggSum[i] = eggList[i];
+    for (auto &x : eggList)
+        eggSum[6] += x;
+    sumBugs.push_back(eggSum);
     outputVec.push_back(V);
     std::cout << currentTime;
     for (auto &x : eggList)
@@ -345,11 +519,19 @@ void State::printData()
 }
 
 void State::serializeData()
-{
-    std::cout << "Time To Seralize!" << std::endl;
+{   
+    // std::cout << "Time To Seralize!" << std::endl;
     outputJson["x"] = parameterList["vineyardColumns"];
     outputJson["y"] = parameterList["vineyardColumnSize"];
-    outputJson["distribtionMap"] = outputVec;
+    // outputJson["distributionMap"] = outputVec;
+    outputJson["grapeClusters"] = grapeClusters;
+    outputJson["grapeMoney"] = grapeMoney;
+    outputJson["sprayMoney"] = sprayMoney;
+    outputJson["pnl"] = pnl;
+    outputJson["vineHealth"] = vineHealth;
+    outputJson["pesticideStrat"] = chosenPesticide;
+    outputJson["sumBugs"] = sumBugs;
+    
     // std::stringstream strStream;
     // vector<vector<int>> population
     // for (int x = 0; x < (int)outputJson["x"]; x++)
@@ -387,4 +569,3 @@ std::pair<int, int> State::pickLocation(vector<vector<double>> distribution)
     }
     return {distribution.size() - 1, distribution[0].size() - 1};
 }
-

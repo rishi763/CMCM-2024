@@ -1,24 +1,30 @@
 #include "pch.h"
 #include "state.h"
 
-const string runName = "testing";
+string runName = "testing";
 const string jsonName = "data.json";
 fs::path outputPath = std::filesystem::current_path() /= fs::path("data") /= fs::path(runName);
 
 int main(){ 
+    
     auto programStartTime = std::chrono::system_clock::now();
-    srand(std::time(0));
+    srand(std::time(NULL));
     
     std::ifstream f(jsonName);
     json parameterList = json::parse(f);
 
-    std::cout << "Json Successfully read\n";
-    
     fs::create_directory(fs::path("data")/=fs::path(runName));
     
-    // State::parameterList = parameterList;
-    auto data = vector<State>(parameterList["threadCount"], State(parameterList));
+    GnuplotPipe gp;
+    
 
+
+    // State::parameterList = parameterList;
+    auto data = vector<State>(100, State(parameterList, 0));
+    auto queue = std::queue<State*>();
+    for(auto &x : data) queue.push(&x);
+
+    
     auto threadList = vector<thread>(parameterList["threadCount"]);
     auto threadFunction = [](State* s, int threadId){
         auto threadStartTime = std::chrono::system_clock::now();
