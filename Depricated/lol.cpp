@@ -20,56 +20,60 @@ int main(){
 
 
     // State::parameterList = parameterList;
-    // State::params
-    auto data = vector<State>();
-    for(int _nymphThreshold = 20; _nymphThreshold < 90; _nymphThreshold++){
-    for(int _adultThreshold = 5; _adultThreshold < 20; _adultThreshold++){
-    for(int _harvestDeadline = 315; _harvestDeadline < 316; _harvestDeadline++){
-    for(int _chosenPesticide = 0; _chosenPesticide < 3; _chosenPesticide++){
-    for(int _costFunctionID = 0; _costFunctionID < 2; _costFunctionID++){
-    for(int _stratID = 0; _stratID < 1; _stratID++){
-        data.push_back(State(parameterList, State::params{
-            _nymphThreshold, _adultThreshold, _harvestDeadline, _chosenPesticide, _costFunctionID, _stratID
-        }));
-    }}}}}}
-   
-
-
-
-    State* first = &data.front();
+    auto data = vector<State>(100, State(parameterList, 0));
     // Goihng to generate all the permutations here
-    // for(every state)
     
-    std::mutex queueMutex;
+    std::mutex queueMutex, printMutex;
     auto allocationQueue = std::queue<State*>();
+    auto printQueue = std::queue<State*>();
     for(auto &x : data) allocationQueue.push(&x);
 
     auto threadList = vector<thread>(parameterList["threadCount"]);
     auto threadFunction = [&](int threadId){
-        while(true){
+        while(!allocationQueue.empty()){
             queueMutex.lock();
-            if(allocationQueue.empty()){
-                queueMutex.unlock();
-                break;
-            }
-            State* s = allocationQueue.front();
-            allocationQueue.pop();
-            queueMutex.unlock();
+            if(!allocationQueue.empty()){
 
-            auto threadStartTime = std::chrono::system_clock::now();
-            s->simulate();
-            auto threadEndTime = std::chrono::system_clock::now();
-            std::cout << "Thread " << threadId << " finished computing in " << 
-            std::chrono::duration_cast<std::chrono::microseconds>(threadEndTime - threadStartTime).count()/1e6 << 
-            " seconds" << std::endl;
-            s->outputData(outputPath, std::distance(first, s));
+                queueMutex.lock();
+                State* s = allocationQueue.front();
+                allocationQueue.pop();
+                queueMutex.unlock();
+
+                auto threadStartTime = std::chrono::system_clock::now();
+                s->simulate();
+                auto threadEndTime = std::chrono::system_clock::now();
+                std::cout << "Thread " << threadId << " finished computing in " << 
+                std::chrono::duration_cast<std::chrono::microseconds>(threadEndTime - threadStartTime).count()/1e6 << 
+                " seconds" << std::endl;
+
+                printMutex.lock();
+                printQueue.push(s);
+                printMutex.unlock();
+            }
         }
     };
+
+
 
     for(int i = 0; i < parameterList["threadCount"]; i++){
         threadList[i] = thread(threadFunction, i);
         std::cout << "Opening thead " << i << ", Id: " << threadList[i].get_id() << "\n";
     }
+
+
+    // auto diskThread = thread([&](){
+    //     while(!printQueue.empty()){
+    //         printMutex.lock();
+    //         if(!printQueue.empty()){
+
+    //             printMutex.lock();
+    //             State* s = printQueue.front();
+    //             printQueue.pop();
+    //             printMutex.unlock();
+    //             s->outputData(outputPath, 0);
+    //         }
+    //     }
+    // });
 
     for(auto &x : threadList){
         x.join();

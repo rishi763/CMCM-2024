@@ -35,8 +35,9 @@ void State::initVineyard()
     grapeClusters = vector<int>();
     grapeMoney = vector<float>();
     sprayMoney = vector<float>();
+    eachtimestepVineHelath = vector<float>();
     pnl = vector<float>();
-    int maximumSprayDose = (int) parameterList["pesticide"][chosenPesticide]["maximumSprayDose"];
+    int maximumSprayDose = (int) parameterList["pesticide"][inputParam.chosenPesticide]["maximumSprayDose"];
     spraysLeft = vector<vector<int>>(vineyardColumns, vector<int>(vineyardColumnSize, maximumSprayDose));
     // Initalize egg distribtion
     for (int row = 0; row < eggDistribution.size(); row++)
@@ -67,6 +68,8 @@ void State::simulate()
         timeStep();
         currentTime += (int)parameterList["timeStep"];
     }
+    function<int()> costFunc = costFunctions[inputParam.costFunctionID];
+    costAnalysis = costFunc();
     std::cout << "Finished Simulating on this Thread" << std::endl;
 }
 
@@ -74,7 +77,7 @@ void State::timeStep()
 {
     updateEnvironment();
     updateBug();
-    flatThresholdStrategy(50, 10, 270);
+    flatThresholdStrategy();
     printData();
 }
 
@@ -404,8 +407,8 @@ void State::winterKillDay()
             }
         }
         // Update spray values because no more bugs exist
-        int sprayMaximumDose = parameterList["pesticide"][chosenPesticide]["maximumSprayDose"];
-        int costPerSpray = parameterList["pesticide"][chosenPesticide]["costPerSpray"];
+        int sprayMaximumDose = parameterList["pesticide"][inputParam.chosenPesticide]["maximumSprayDose"];
+        int costPerSpray = parameterList["pesticide"][inputParam.chosenPesticide]["costPerSpray"];
         int usedSprays=0;
         for(auto &row : spraysLeft){
             for(auto& entry: row){
@@ -420,13 +423,13 @@ void State::winterKillDay()
 
 void State::grapeVineUpdate()
 {
-    if (currentDay == harvestDay)
+    if (currentDay == inputParam.harvestDeadline)
     {
         int grapesMade = 0;
         float fungusThreshold = parameterList["fungusThreshold"];
         int grapeClusterAverage = parameterList["grapeClusterAverage"];
         int redZone = parameterList["redZone"];
-        int PLI = parameterList["pesticide"][chosenPesticide]["PHI"];
+        int PLI = parameterList["pesticide"][inputParam.chosenPesticide]["PHI"];
 
         for (int x = 0; x < bugCount.size(); x++)
         {
@@ -434,6 +437,7 @@ void State::grapeVineUpdate()
             {
                 if (!(fungus[x][y] >= fungusThreshold && vineHealth[x][y] <= redZone && true /*TODO: days from PLI is soliod*/))
                 {
+                    totalGrapes += grapeClusterAverage;
                     grapesMade += grapeClusterAverage;
                 }
             }
@@ -452,6 +456,8 @@ void State::fungusPlantHealthUpdate()
     int plantHealthThreshold = parameterList["plantHealthThreshold"];
     float plantHealthSlope = parameterList["plantHealthSlope"];
 
+    float vineHealthSum = 0;
+
     for (int x = 0; x < bugCount.size(); x++)
     {
         for (int y = 0; y < bugCount[0].size(); y++)
@@ -468,9 +474,12 @@ void State::fungusPlantHealthUpdate()
             if (bugCnt >= plantHealthThreshold)
             {
                 vineHealth[x][y] = std::max(0.0f, vineHealth[x][y] - (plantHealthSlope * (bugCnt - plantHealthThreshold)));
+                vineHealthSum += vineHealth[x][y]; 
             }
         }
     }
+    int vineHealthAvg = vineHealthSum/(bugCount.size()*bugCount[0].size());
+    eachtimestepVineHelath.push_back(vineHealthAvg);
 }
 
 void State::layEggsDay()
@@ -529,8 +538,9 @@ void State::serializeData()
     outputJson["sprayMoney"] = sprayMoney;
     outputJson["pnl"] = pnl;
     outputJson["vineHealth"] = vineHealth;
-    outputJson["pesticideStrat"] = chosenPesticide;
+    outputJson["pesticideStrat"] = inputParam.chosenPesticide;
     outputJson["sumBugs"] = sumBugs;
+    outputJson["eachtimestepVineHelath"] = eachtimestepVineHelath;
     
     // std::stringstream strStream;
     // vector<vector<int>> population
@@ -568,4 +578,57 @@ std::pair<int, int> State::pickLocation(vector<vector<double>> distribution)
         }
     }
     return {distribution.size() - 1, distribution[0].size() - 1};
+}
+
+
+void State::flatThresholdStrategy(){
+    // int nymphThreshold, int adultThreshold, int harvestDeadline;
+    //  int nymphThreshold = 50;
+    //  int adultThreshold = 10;
+    //  int harvestDeadline = 270;
+
+    double adultEfficacy = (double) parameterList["pesticide"][inputParam.chosenPesticide]["SLFEfficacy"];
+    int sprayPreHarvestInterval = (int) parameterList["pesticide"][inputParam.chosenPesticide]["PHI"];
+    
+    for (int x = 0; x < bugCount.size(); x++)
+    {
+        for (int y = 0; y < bugCount[0].size(); y++)
+        {
+            if (spraysLeft[x][y] <= 0)
+            {
+                return;
+            }
+            
+            if (currentDay >= inputParam.harvestDeadline - sprayPreHarvestInterval)
+            {
+                return;
+            }
+            if ((bugCount[x][y][maleNymph] + bugCount[x][y][femaleNymph] >= inputParam.nymphThreshold) || (bugCount[x][y][maleAdult] + bugCount[x][y][femaleAdult] >= inputParam.adultThreshold))
+            {
+                spraysLeft[x][y]--;
+                bugCount[x][y][maleNymph] = 0;
+                bugCount[x][y][femaleNymph] = 0;
+                int deadMaleAdults = 0;
+                int deadFemaleAdults = 0;
+                for (int i = 0; i < bugCount[x][y][maleAdult]; i++)
+                {
+                if (rand0to1() < adultEfficacy)
+                {
+                    deadMaleAdults++;
+                }
+                }
+                for (int i = 0; i < bugCount[x][y][femaleAdult]; i++)
+                {
+                if (rand0to1() < adultEfficacy)
+                {
+                    deadFemaleAdults++;
+                }
+                }
+                bugCount[x][y][maleAdult] -= deadMaleAdults;
+                bugCount[x][y][femaleAdult] -= deadFemaleAdults;
+
+                lastSprayTime[x][y] = currentTime;
+            }
+        }
+    }
 }

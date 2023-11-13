@@ -5,18 +5,16 @@
     "vineyardColumnSize": 50,
     "vineyardColumns": 20,
 
-    "sprayEffectivenessOnAdults": 0.60,
-    "sprayPreHarvestInterval": 30,
-
     "bugReturnAfterSpray": 15,
     "SLFAdultTransferRate": 0.1,
     "SLFFemaleEggLayRate": 0.9,
     "SLFFemaleEggDoubleLayRate": 0.4,
     "SLFHorJmpRateRelToVertical" : 0.3,
     "SLFSapFeeding": "???",
-    "initialSLFEggMasses": 500,
+    "initialSLFEggMasses": 5000,
     "SLFEggMassSize": 40,
     "SLFEggHatchRate": 0.45,
+
     "grapeClusterAverage": 40,
     "weather": [-6,-5,-1,5,10,16,18,17,13,1,-3],
 
@@ -37,43 +35,43 @@
 
 
     "timeStep": 1,
-    "runTime": 360,
+    "runTime": 3600,
     
     "threadCount": 1,
 
     "pesticide": [
         { 
                     "name": "Bifenthrin",
-                    "maximumSprayDose": 4 ,
+                    "maximumSprayDose": 2 ,
                     "costPerSpray": 0.0137,
                     "PHI": 30,
                     "sprayFreq": 10,
                     "longTermDamage": 0,
-                    "SLFEfficacy": 0.95,
+                    "SLFEfficacy": 1,
                     "insectEfficacy": 0.9,
                     "adultLongevity": 7,
                     "nymphLongevity": 28
                 },
                 { 
                     "name": "thiamethoxam",
-                    "maximumSprayDose": 1,
+                    "maximumSprayDose": 2,
                     "costPerSpray":  0.0548,
                     "PHI": 5,
                     "sprayFreq": 10 ,
                     "longTermDamage": 0,
-                    "SLFEfficacy": 0.85,
+                    "SLFEfficacy": 0.702,
                     "insectEfficacy": 0.6,
                     "adultLongevity": 4,
                     "nymphLongevity": 28
                 },
                 { 
                     "name": "dinotefuran",
-                    "maximumSprayDose": 1,
+                    "maximumSprayDose": 4,
                     "costPerSpray": 0.0274,
                     "PHI": 1 ,
                     "sprayFreq": 10,
                     "longTermDamage": 0,
-                    "SLFEfficacy": 0.95,
+                    "SLFEfficacy": 0.559,
                     "insectEfficacy": 0.4,
                     "adultLongevity": 4,
                     "nymphLongevity": 28

@@ -14,6 +14,7 @@
 #include <functional>
 #include "gnuplot.h"
 #include <queue>
+#include <mutex>
 
 using json = nlohmann::json;
 using std::string;
@@ -23,4 +24,5 @@ using std::unique_ptr;
 using std::thread;
 using std::array;
 using std::function;
+using std::mutex;
 // #define RAND_MAX 10e9
