@@ -14,9 +14,9 @@ struct State
         int chosenPesticide = 0;
         int costFunctionID = 0;
         int stratID = 0;
-        params() : 
-        nymphThreshold(int _nymphThreshold), adultThreshold(int _adultThreshold), harvestDeadline(int _harvestDeadline),
-        chosenPesticide(int _chosenPesticide), costFunctionID(int _costFunctionID), stratID(int _stratID) {}
+        // params() : 
+        // nymphThreshold(int _nymphThreshold), adultThreshold(int _adultThreshold), harvestDeadline(int _harvestDeadline),
+        // chosenPesticide(int _chosenPesticide), costFunctionID(int _costFunctionID), stratID(int _stratID) {}
     }inputParam;
     
     State(const json &_parameterList, params _inputParam)
@@ -37,20 +37,13 @@ struct State
         maleAdult
     };
 
-
-    // struct plant
-    // {
-    //     array<int, 6> bugCount{0};
-    //     int vineHealth = 100;                                     // 0 to 100
-    //     int grapeClusters = 40;
-    //     // parameterList["grapeClusterAverage"]; // on average a healthy grape vine
-    // };
-
     int currentTime = 1;
     int currentMonth = 1;
     int currentDay = 1;
     int totalGrapes = 0;
-    int costAnalysis = 0;
+    float costAnalysis = 0;
+    
+    array<int, 6> totalBugs = {0,0,0,0,0};
 
     // Map represtation of our farm
     vector<vector<array<int, 6>>> bugCount;
@@ -65,7 +58,7 @@ struct State
     vector<float> grapeMoney;
     vector<float> sprayMoney;
     vector<float> pnl;
-    vector<float> eachtimestepVineHelath;
+    vector<float> eachTimeStepVineHealth;
 
     // Overarching functions
     void initVineyard();
@@ -75,7 +68,6 @@ struct State
 
     // Properties of bug simulation functions
     void updateEnvironment();
-    // void searching();
     void exterminate();
     void updateBug();
     void spawnInBugs(int numberOfEggMasses, int eggMasses, bugType type, bool bothSexes);
@@ -108,11 +100,14 @@ struct State
         },
         // Sum vineHealth
         [&]()->float{
-            return eachtimestepVineHelath.back();
+            return eachTimeStepVineHealth.back();
+        },
+        [&]()->float{
+            return pnl.back();
         },
         // Linear Sum of both
         [&]()->float{
-            return eachtimestepVineHelath.back() + totalGrapes;
+            return eachTimeStepVineHealth.back() + totalGrapes;
         }
     };
     

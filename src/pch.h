@@ -25,4 +25,5 @@ using std::thread;
 using std::array;
 using std::function;
 using std::mutex;
+using std::pair;
 // #define RAND_MAX 10e9

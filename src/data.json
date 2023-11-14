@@ -1,82 +1,100 @@
 {
     "units": "meters",
-    
-    "rowSpacing": 3.05, 
+    "rowSpacing": 3.05,
     "vineyardColumnSize": 50,
     "vineyardColumns": 20,
-
     "bugReturnAfterSpray": 15,
     "SLFAdultTransferRate": 0.1,
     "SLFFemaleEggLayRate": 0.9,
+    "trialsForOptimizatoinRun": 10,
     "SLFFemaleEggDoubleLayRate": 0.4,
-    "SLFHorJmpRateRelToVertical" : 0.3,
+    "SLFHorJmpRateRelToVertical": 0.3,
     "SLFSapFeeding": "???",
     "initialSLFEggMasses": 5000,
     "SLFEggMassSize": 40,
     "SLFEggHatchRate": 0.45,
-
     "grapeClusterAverage": 40,
-    "weather": [-6,-5,-1,5,10,16,18,17,13,1,-3],
-
+    "weather": [
+        -6,
+        -5,
+        -1,
+        5,
+        10,
+        16,
+        18,
+        17,
+        13,
+        1,
+        -3
+    ],
     "fungusThreshold": 0.03,
-    "grapesToDollars": 0.04,
-
+    "grapesToDollars": 0.98,
     "winterKillDay": 315,
-    "hatchEggsDay":120,
-    "turnToAdultDay":150,
-    "layEggsDay":275,
-
+    "hatchEggsDay": 120,
+    "nymphLowDamageMultiplier": 0.2,
+    "turnToAdultDay": 150,
+    "layEggsDay": 275,
     "plantHealthThreshold": 70,
-    "plantHealthSlope": 0.1,
+    "plantHealthSlope": 1,
     "redZone": 20,
-    "fungusSlope": 0.01,
+    "fungusSlope": 0.001,
     "fungusYIntercept": 150,
-    "plantHealth": 1,
-
-
+    "plantHealth": 100,
+    "runOptimization": true,
     "timeStep": 1,
-    "runTime": 3600,
-    
+    "runTime": 1800,
+    "printStatements": false,
     "threadCount": 1,
-
     "pesticide": [
-        { 
-                    "name": "Bifenthrin",
-                    "maximumSprayDose": 2 ,
-                    "costPerSpray": 0.0137,
-                    "PHI": 30,
-                    "sprayFreq": 10,
-                    "longTermDamage": 0,
-                    "SLFEfficacy": 1,
-                    "insectEfficacy": 0.9,
-                    "adultLongevity": 7,
-                    "nymphLongevity": 28
-                },
-                { 
-                    "name": "thiamethoxam",
-                    "maximumSprayDose": 2,
-                    "costPerSpray":  0.0548,
-                    "PHI": 5,
-                    "sprayFreq": 10 ,
-                    "longTermDamage": 0,
-                    "SLFEfficacy": 0.702,
-                    "insectEfficacy": 0.6,
-                    "adultLongevity": 4,
-                    "nymphLongevity": 28
-                },
-                { 
-                    "name": "dinotefuran",
-                    "maximumSprayDose": 4,
-                    "costPerSpray": 0.0274,
-                    "PHI": 1 ,
-                    "sprayFreq": 10,
-                    "longTermDamage": 0,
-                    "SLFEfficacy": 0.559,
-                    "insectEfficacy": 0.4,
-                    "adultLongevity": 4,
-                    "nymphLongevity": 28
-                }
+        {
+            "name": "Bifenthrin",
+            "maximumSprayDose": 2,
+            "costPerSpray": 0.0137,
+            "PHI": 30,
+            "sprayFreq": 10,
+            "longTermDamage": 0,
+            "SLFEfficacy": 1,
+            "insectEfficacy": 0.9,
+            "adultLongevity": 7,
+            "nymphLongevity": 28
+        },
+        {
+            "name": "thiamethoxam",
+            "maximumSprayDose": 2,
+            "costPerSpray": 0.0548,
+            "PHI": 5,
+            "sprayFreq": 10,
+            "longTermDamage": 0,
+            "SLFEfficacy": 0.702,
+            "insectEfficacy": 0.6,
+            "adultLongevity": 4,
+            "nymphLongevity": 28
+        },
+        {
+            "name": "dinotefuran",
+            "maximumSprayDose": 4,
+            "costPerSpray": 0.0274,
+            "PHI": 1,
+            "sprayFreq": 10,
+            "longTermDamage": 0,
+            "SLFEfficacy": 0.559,
+            "insectEfficacy": 0.4,
+            "adultLongevity": 4,
+            "nymphLongevity": 28
+        }
+    ],
+    "iterateOverParam": [
+        [
+            20, 80, 5, 55, 0, 0
+        ],
+        [
+            5, 20, 4, 15, 0, 0
+        ],
+        [
+            260, 310, 10, 270, 0, 0
+        ],
+        [
+            0, 3, 1, 0, 0, 0
+        ]
     ]
-
-
 }

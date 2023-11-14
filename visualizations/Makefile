@@ -16,7 +16,7 @@ names += $(shell find $(modPath) -iname "*.h")
 all: $(TARGET)
 
 $(TARGET): $(TARGET).cpp
-	$(CC) $(CFLAGS) -o $(TARGET) $(names) -lpthread
+	$(CC) $(CFLAGS) -o $(TARGET) $(names) -pthread -lpthread -Wl,--no-as-needed
 
 clean:
 	$(RM) $(TARGET)
